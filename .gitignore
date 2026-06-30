@@ -1,0 +1,11 @@
+# Build output
+.build/
+build/
+DerivedData/
+
+# macOS
+.DS_Store
+*.swp
+
+# Local-only debug dumps and settings (contain secrets)
+last_response.json
