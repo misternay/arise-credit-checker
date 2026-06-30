@@ -21,20 +21,25 @@ cap show total `spend` instead.
 ### Option A — Homebrew (recommended)
 
 ```bash
-brew install --cask --no-quarantine misternay/tap/arise-credit-checker
+brew install --cask misternay/tap/arise-credit-checker
 ```
 
-Then open from Spotlight / Launchpad.
+Then clear the quarantine flag and open from Spotlight / Launchpad:
 
-> **Why `--no-quarantine`?** This app is **unsigned** (no paid Apple Developer ID).
-> On macOS 12+ an unsigned app that still carries the `com.apple.quarantine`
-> flag is reported as **"damaged and can't be opened"** and macOS will offer to
-> move it to Trash — even though the download is perfectly intact. The
-> `--no-quarantine` flag tells Homebrew *not* to attach that flag, so the app
-> opens normally. If you forgot it, fix the installed copy in one line:
-> ```bash
-> xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"
-> ```
+```bash
+xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"
+```
+
+> **Why the `xattr` step?** This app is **unsigned** (no paid Apple Developer
+> ID). Homebrew downloads it with the `com.apple.quarantine` flag attached, and
+> on macOS 12+ an unsigned + quarantined app is reported as **"damaged and can't
+> be opened"** — macOS will offer to move it to Trash, even though the download
+> is perfectly intact. The `xattr` line clears that flag and the app opens
+> normally.
+>
+> *(Older Homebrew versions supported `brew install --cask --no-quarantine`,
+> but Homebrew 4.4+ removed that flag, so the `xattr` line is the reliable
+> method.)*
 
 ### Option B — Download
 
