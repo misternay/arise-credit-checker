@@ -36,8 +36,10 @@ echo "  $(lipo -archs "$DIST/$EXEC_NAME") binary built"
 echo "▸ Assembling .app bundle…"
 APP_BUNDLE="$DIST/$APP_NAME.app"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
+mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp "$DIST/$EXEC_NAME" "$APP_BUNDLE/Contents/MacOS/$EXEC_NAME"
 cp Info.plist "$APP_BUNDLE/Contents/Info.plist"
+cp AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 rm -f "$DIST/$EXEC_NAME"
 
 # Stamp the version into the bundle.

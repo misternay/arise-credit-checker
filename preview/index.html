@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arise Credit Checker — UI/UX Mockup & Redesign Preview</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+      /* Colors */
+      --bg-gradient-start: #0f172a;
+      --bg-gradient-end: #1e1b4b;
+
+      --macos-menu-bg: rgba(28, 28, 30, 0.75);
+      --macos-menu-bg-light: rgba(255, 255, 255, 0.75);
+      --macos-border: rgba(255, 255, 255, 0.1);
+      --macos-border-light: rgba(0, 0, 0, 0.1);
+      --macos-highlight: #3b82f6;
+      --macos-text: #ffffff;
+      --macos-text-secondary: rgba(255, 255, 255, 0.65);
+      --macos-text-light: #1c1c1e;
+      --macos-text-secondary-light: rgba(0, 0, 0, 0.6);
+
+      --accent-ok: #10b981;
+      --accent-warn: #f59e0b;
+      --accent-danger: #ef4444;
+      --accent-uncapped: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+      color: #f8fafc;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 2.5rem 2rem 1.5rem;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      background: rgba(96, 165, 250, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      margin-top: 1rem;
+    }
+
+    /* Comparison Container */
+    .comparison-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 3rem;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto flex-grow;
+      width: 100%;
+    }
+
+    .panel {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 2rem;
+      flex: 1;
+      min-width: 400px;
+      max-width: 550px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .panel-tag {
+      position: absolute;
+      top: -12px;
+      left: 2rem;
+      padding: 0.25rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .panel-tag.old {
+      background: #ef4444;
+      color: white;
+    }
+
+    .panel-tag.new {
+      background: #10b981;
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .panel h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .panel .desc {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 2rem;
+    }
+
+    /* macOS Desktop Simulator */
+    .desktop-sim {
+      height: 480px;
+      width: 100%;
+      background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') no-repeat center center;
+      background-size: cover;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4);
+    }
+
+    /* macOS Menu Bar */
+    .menu-bar {
+      height: 24px;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 400;
+      color: white;
+      user-select: none;
+      z-index: 10;
+      position: relative;
+    }
+
+    .menu-bar-item {
+      padding: 0 8px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .menu-bar-item:hover,
+    .menu-bar-item.active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .menu-bar-item svg {
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+    }
+
+    /* Menu Dropdown Container */
+    .dropdown-container {
+      position: absolute;
+      top: 28px;
+      right: 8px;
+      width: 280px;
+      background: var(--macos-menu-bg);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid var(--macos-border);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      padding: 4px;
+      z-index: 20;
+      font-size: 13px;
+      user-select: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    /* Menu Item */
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: default;
+      color: var(--macos-text);
+      position: relative;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .menu-item.disabled {
+      color: var(--macos-text-secondary);
+      cursor: default;
+    }
+
+    .menu-item.interactive:hover {
+      background: var(--macos-highlight);
+      color: white !important;
+    }
+
+    .menu-item.interactive:hover .menu-item-secondary,
+    .menu-item.interactive:hover svg {
+      color: white !important;
+      fill: white !important;
+    }
+
+    .menu-item-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-item-secondary {
+      color: var(--macos-text-secondary);
+      font-size: 12px;
+    }
+
+    .menu-separator {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 4px 6px;
+    }
+
+    /* Icons */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.ok {
+      background: var(--accent-ok);
+    }
+
+    .status-dot.warn {
+      background: var(--accent-warn);
+    }
+
+    .status-dot.danger {
+      background: var(--accent-danger);
+    }
+
+    .status-dot.uncapped {
+      background: var(--accent-uncapped);
+    }
+
+    .menu-item svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.8;
+    }
+
+    /* Submenu indicators */
+    .submenu-arrow {
+      border: solid var(--macos-text-secondary);
+      border-width: 0 1.5px 1.5px 0;
+      display: inline-block;
+      padding: 2px;
+      transform: rotate(-45deg);
+      -webkit-transform: rotate(-45deg);
+    }
+
+    .menu-item.interactive:hover .submenu-arrow {
+      border-color: white;
+    }
+
+    /* Simulated Submenu Panel */
+    .simulated-submenu {
+      position: absolute;
+      left: -242px;
+      top: -4px;
+      width: 240px;
+      background: var(--macos-menu-bg);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid var(--macos-border);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      padding: 4px;
+      display: none;
+      z-index: 30;
+    }
+
+    /* Trigger submenu on hover in simulation */
+    .has-submenu:hover .simulated-submenu {
+      display: block;
+    }
+
+    .submenu-title {
+      font-weight: 600;
+      padding: 4px 10px;
+      color: var(--macos-text-secondary);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Highlight box for key UX issues */
+    .ux-callout {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #fca5a5;
+    }
+
+    .ux-callout.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #a7f3d0;
+    }
+
+    .ux-callout h4 {
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ux-callout ul {
+      list-style-type: none;
+      padding-left: 0.5rem;
+    }
+
+    .ux-callout li {
+      margin-bottom: 0.25rem;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    .ux-callout li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: inherit;
+    }
+
+    /* Interactive Mockup Dialog / Sheet */
+    .sheet-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .sheet-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .macos-sheet {
+      width: 380px;
+      background: rgba(35, 35, 37, 0.92);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      padding: 18px 24px;
+      color: white;
+      transform: scale(0.9);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sheet-backdrop.active .macos-sheet {
+      transform: scale(1);
+    }
+
+    .sheet-title {
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--macos-text-secondary);
+      width: 100px;
+    }
+
+    .form-group input {
+      flex-grow: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: white;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: var(--macos-highlight);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+    }
+
+    .sheet-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .macos-btn {
+      padding: 4px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: default;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .macos-btn.cancel {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    .macos-btn.cancel:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .macos-btn.primary {
+      background: var(--macos-highlight);
+      color: white;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .macos-btn.primary:hover {
+      background: #2563eb;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem;
+      color: #64748b;
+      font-size: 0.9rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: auto;
+    }
+
+    /* Animation effects */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <span class="badge">UI/UX Pro Max Redesign Preview</span>
+    <h1>Arise Credit Checker Redesign Mockup</h1>
+    <p>A side-by-side interactive comparison demonstrating the current 3-level clunky menu structure versus the proposed
+      flattened, SF-Symbol styled 2-level menu interface.</p>
+  </header>
+
+  <div class="comparison-container">
+
+    <!-- LEFT PANEL: OLD UX -->
+    <div class="panel">
+      <span class="panel-tag old">Current Clunky UX</span>
+      <h2>Old 3-Level Menu</h2>
+      <p class="desc">Requires double nested hovering to inspect or edit any single account. Uses plain text spacing and
+        standard emojis.</p>
+
+      <!-- Desktop Simulator -->
+      <div class="desktop-sim">
+        <div class="menu-bar">
+          <div class="menu-bar-item active" id="old-trigger">
+            <span>$47.62</span>
+          </div>
+        </div>
+
+        <!-- Menu Dropdown -->
+        <div class="dropdown-container" id="old-dropdown">
+          <div class="menu-item disabled">$47.62 remaining · updated 5:12 PM</div>
+          <div class="menu-separator"></div>
+
+          <!-- Clunky Submenu 1: Accounts -->
+          <div class="menu-item interactive has-submenu" style="font-weight: 500;">
+            <div class="menu-item-main">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Accounts</span>
+            </div>
+            <span class="submenu-arrow"></span>
+
+            <!-- Submenu 2: List of Accounts -->
+            <div class="simulated-submenu" style="left: -242px; width: 240px; display: block;">
+
+              <!-- Account 1 -->
+              <div class="menu-item interactive has-submenu">
+                <div class="menu-item-main">
+                  <span>🟢</span>
+                  <span>Work Account</span>
+                </div>
+                <span class="menu-item-secondary">$42.50</span>
+                <span class="submenu-arrow" style="margin-left: 4px;"></span>
+
+                <!-- Submenu 3: Actions & Details (Level 3!) -->
+                <div class="simulated-submenu" style="left: -202px; width: 200px;">
+                  <div class="submenu-title">Work Account Info</div>
+                  <div class="menu-item disabled">Remaining: $42.50</div>
+                  <div class="menu-item disabled">Spent: $57.50</div>
+                  <div class="menu-item disabled">Budget: $100.00</div>
+                  <div class="menu-item disabled">Used: 57.5%</div>
+                  <div class="menu-item disabled">Alias: wrk-key</div>
+                  <div class="menu-separator"></div>
+                  <div class="menu-item interactive"
+                    onclick="openModal('Work Account', 'https://arise-lite-llm-gw-1.arisetech.dev', '••••••••••••••••')">
+                    <div class="menu-item-main">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <span>Edit…</span>
+                    </div>
+                  </div>
+                  <div class="menu-item interactive">
+                    <div class="menu-item-main">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Remove</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Account 2 -->
+              <div class="menu-item interactive has-submenu">
+                <div class="menu-item-main">
+                  <span>🟡</span>
+                  <span>Personal</span>
+                </div>
+                <span class="menu-item-secondary">$5.12</span>
+                <span class="submenu-arrow" style="margin-left: 4px;"></span>
+
+                <!-- Submenu 3: Actions & Details -->
+                <div class="simulated-submenu" style="left: -202px; width: 200px;">
+                  <div class="submenu-title">Personal Info</div>
+                  <div class="menu-item disabled">Remaining: $5.12</div>
+                  <div class="menu-item disabled">Spent: $14.88</div>
+                  <div class="menu-item disabled">Budget: $20.00</div>
+                  <div class="menu-item disabled">Used: 74.4%</div>
+                  <div class="menu-item disabled">Alias: pers-key</div>
+                  <div class="menu-separator"></div>
+                  <div class="menu-item interactive"
+                    onclick="openModal('Personal', 'https://arise-lite-llm-gw-1.arisetech.dev', '••••••••••••••••')">
+                    <div class="menu-item-main">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <span>Edit…</span>
+                    </div>
+                  </div>
+                  <div class="menu-item interactive">
+                    <div class="menu-item-main">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Remove</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="menu-separator"></div>
+
+          <div class="menu-item interactive" onclick="openModal('', 'https://arise-lite-llm-gw-1.arisetech.dev', '')">
+            <div class="menu-item-main">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span>Add account…</span>
+            </div>
+            <span class="menu-item-secondary">⌘N</span>
+          </div>
+          <div class="menu-item interactive">
+            <div class="menu-item-main">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span>Refresh now</span>
+            </div>
+            <span class="menu-item-secondary">⌘R</span>
+          </div>
+          <div class="menu-separator"></div>
+          <div class="menu-item interactive">
+            <div class="menu-item-main">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                <line x1="12" y1="2" x2="12" y2="12"></line>
+              </svg>
+              <span>Quit Arise Credit</span>
+            </div>
+            <span class="menu-item-secondary">⌘Q</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ux-callout">
+        <h4>⚠️ UX Issues Identified</h4>
+        <ul>
+          <li><strong>Extreme Hover Friction</strong>: Hovering "Accounts" &rarr; "Work Account" &rarr; "Info Submenu"
+            is highly error-prone.</li>
+          <li><strong>No Inline Overview</strong>: You cannot see status details at a glance without opening multiple
+            submenus.</li>
+          <li><strong>Unpolished Aesthetics</strong>: Emoji icons (🟢, 🟡) do not feel integrated with macOS design
+            language.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: NEW REDESIGNED UX -->
+    <div class="panel">
+      <span class="panel-tag new">Proposed Redesign</span>
+      <h2>Flat 2-Level Menu</h2>
+      <p class="desc">Accounts sit directly in the root menu for instant viewing. Each account gets its own single
+        submenu for actions and info details.</p>
+
+      <!-- Desktop Simulator -->
+      <div class="desktop-sim">
+        <div class="menu-bar">
+          <div class="menu-bar-item active" id="new-trigger">
+            <!-- Combined SF Symbols style representation -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              style="margin-right: 6px; color: var(--accent-ok);">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <span>$47.62</span>
+          </div>
+        </div>
+
+        <!-- Menu Dropdown -->
+        <div class="dropdown-container" id="new-dropdown">
+          <div class="menu-item disabled" style="font-size: 11px; font-weight: 500; letter-spacing: 0.02em;">TOTAL
+            BALANCE</div>
+          <div class="menu-item disabled" style="padding-top: 0; padding-bottom: 8px;">
+            <span style="font-size: 16px; font-weight: 700; color: white;">$47.62 remaining</span>
+            <span class="menu-item-secondary pulse" style="font-size: 11px;">Updated 5m ago</span>
+          </div>
+          <div class="menu-separator"></div>
+
+          <div class="menu-item disabled"
+            style="font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--macos-text-secondary); padding: 4px 10px 2px;">
+            ACTIVE ACCOUNTS</div>
+
+          <!-- Accounts Rendered Directly in Root Menu -->
+          <!-- Account 1 -->
+          <div class="menu-item interactive has-submenu">
+            <div class="menu-item-main">
+              <!-- Custom SF Symbol style status circle -->
+              <svg viewBox="0 0 24 24" fill="var(--accent-ok)" stroke="var(--accent-ok)"
+                style="width:10px; height:10px;">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              <span style="font-weight: 500;">Work Account</span>
+            </div>
+            <div class="menu-item-main" style="gap: 6px;">
+              <span style="font-weight: 600; color: var(--accent-ok);">$42.50</span>
+              <span class="submenu-arrow"></span>
+            </div>
+
+            <!-- Detail Submenu (Single-depth!) -->
+            <div class="simulated-submenu" style="left: -222px; width: 220px;">
+              <div class="submenu-title">Work Account Details</div>
+              <div class="menu-item disabled">
+                <span>Remaining:</span>
+                <span style="font-weight: 600; color: white;">$42.50</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Spent:</span>
+                <span style="color: var(--macos-text-secondary);">$57.50</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Budget:</span>
+                <span style="color: var(--macos-text-secondary);">$100.00</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Used:</span>
+                <span style="color: var(--accent-warn); font-weight: 500;">57.5%</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Key Alias:</span>
+                <span style="font-family: monospace; font-size: 11px;">wrk-key</span>
+              </div>
+              <div class="menu-separator"></div>
+              <div class="menu-item interactive"
+                onclick="openModal('Work Account', 'https://arise-lite-llm-gw-1.arisetech.dev', '••••••••••••••••')">
+                <div class="menu-item-main">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                  <span>Edit Settings…</span>
+                </div>
+              </div>
+              <div class="menu-item interactive" style="color: var(--accent-danger);">
+                <div class="menu-item-main">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-danger)" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Remove Account</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account 2 -->
+          <div class="menu-item interactive has-submenu">
+            <div class="menu-item-main">
+              <svg viewBox="0 0 24 24" fill="var(--accent-warn)" stroke="var(--accent-warn)"
+                style="width:10px; height:10px;">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              <span style="font-weight: 500;">Personal</span>
+            </div>
+            <div class="menu-item-main" style="gap: 6px;">
+              <span style="font-weight: 600; color: var(--accent-warn);">$5.12</span>
+              <span class="submenu-arrow"></span>
+            </div>
+
+            <!-- Detail Submenu -->
+            <div class="simulated-submenu" style="left: -222px; width: 220px;">
+              <div class="submenu-title">Personal Details</div>
+              <div class="menu-item disabled">
+                <span>Remaining:</span>
+                <span style="font-weight: 600; color: white;">$5.12</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Spent:</span>
+                <span style="color: var(--macos-text-secondary);">$14.88</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Budget:</span>
+                <span style="color: var(--macos-text-secondary);">$20.00</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Used:</span>
+                <span style="color: var(--accent-danger); font-weight: 600;">74.4%</span>
+              </div>
+              <div class="menu-item disabled">
+                <span>Key Alias:</span>
+                <span style="font-family: monospace; font-size: 11px;">pers-key</span>
+              </div>
+              <div class="menu-separator"></div>
+              <div class="menu-item interactive"
+                onclick="openModal('Personal', 'https://arise-lite-llm-gw-1.arisetech.dev', '••••••••••••••••')">
+                <div class="menu-item-main">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                  <span>Edit Settings…</span>
+                </div>
+              </div>
+              <div class="menu-item interactive" style="color: var(--accent-danger);">
+                <div class="menu-item-main">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-danger)" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Remove Account</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-separator"></div>
+
+          <div class="menu-item interactive" onclick="openModal('', 'https://arise-lite-llm-gw-1.arisetech.dev', '')">
+            <div class="menu-item-main">
+              <!-- plus.circle symbol style -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span>Add account…</span>
+            </div>
+            <span class="menu-item-secondary">⌘N</span>
+          </div>
+          <div class="menu-item interactive">
+            <div class="menu-item-main">
+              <!-- arrow.clockwise symbol style -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Refresh now</span>
+            </div>
+            <span class="menu-item-secondary">⌘R</span>
+          </div>
+          <div class="menu-separator"></div>
+          <div class="menu-item interactive">
+            <div class="menu-item-main">
+              <!-- power symbol style -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                <line x1="12" y1="2" x2="12" y2="12"></line>
+              </svg>
+              <span>Quit Arise Credit</span>
+            </div>
+            <span class="menu-item-secondary">⌘Q</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ux-callout success">
+        <h4>✅ Redesign Advantages</h4>
+        <ul>
+          <li><strong>Direct Visibility</strong>: Active accounts are immediately seen upon opening the root menu.</li>
+          <li><strong>Reduced Click Depth</strong>: Standard hover depth reduced to 2 levels. Fast access to metrics and
+            options.</li>
+          <li><strong>High Fidelity SF Symbols</strong>: Scaled SVGs replicate Apple UI aesthetics correctly.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Interactive Modal/Sheet backdrop -->
+  <div class="sheet-backdrop" id="sheet-modal" onclick="closeModalOnBackdrop(event)">
+    <div class="macos-sheet">
+      <div class="sheet-title" id="modal-title">Edit Account</div>
+      <div class="form-group">
+        <label for="acc-name">Name</label>
+        <input type="text" id="acc-name" placeholder="Work, Personal, Staging…">
+      </div>
+      <div class="form-group">
+        <label for="acc-url">Gateway URL</label>
+        <input type="text" id="acc-url" placeholder="https://…">
+      </div>
+      <div class="form-group">
+        <label for="acc-key">API Key</label>
+        <input type="password" id="acc-key" placeholder="Bearer Token">
+      </div>
+      <div class="sheet-buttons">
+        <button class="macos-btn cancel" onclick="closeModal()">Cancel</button>
+        <button class="macos-btn primary" onclick="saveModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Designed & built using the <strong>ui-ux-pro-max</strong> design framework guidelines.
+  </footer>
+
+  <script>
+    function openModal(name, url, key) {
+      document.getElementById('modal-title').innerText = name ? 'Edit Account settings' : 'Add New Account';
+      document.getElementById('acc-name').value = name || '';
+      document.getElementById('acc-url').value = url || 'https://arise-lite-llm-gw-1.arisetech.dev';
+      document.getElementById('acc-key').value = key || '';
+      document.getElementById('sheet-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('sheet-modal').classList.remove('active');
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === 'sheet-modal') {
+        closeModal();
+      }
+    }
+
+    function saveModal() {
+      const name = document.getElementById('acc-name').value;
+      if (!name) {
+        // Simple input highlight simulation
+        const input = document.getElementById('acc-name');
+        input.style.borderColor = '#ef4444';
+        setTimeout(() => input.style.borderColor = 'rgba(255, 255, 255, 0.1)', 1000);
+        return;
+      }
+      closeModal();
+    }
+  </script>
+</body>
+
+</html>

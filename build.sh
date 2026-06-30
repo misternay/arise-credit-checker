@@ -19,8 +19,10 @@ xcrun swiftc \
 echo "▸ Assembling .app bundle…"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
+mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp "$BUILD_DIR/$EXEC_NAME" "$APP_BUNDLE/Contents/MacOS/$EXEC_NAME"
 cp Info.plist "$APP_BUNDLE/Contents/Info.plist"
+cp AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 
 echo "▸ Done."
 echo "  $APP_BUNDLE"

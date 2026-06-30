@@ -16,6 +16,12 @@ let defaultBaseURL = "https://arise-lite-llm-gw-1.arisetech.dev"
 let endpoint = "/key/info"
 let pollInterval: TimeInterval = 300 // 5 minutes
 
+// Accent colors matching the redesign mockup
+let accentOK      = NSColor(red: 16/255, green: 185/255, blue: 129/255, alpha: 1)  // #10b981
+let accentWarn    = NSColor(red: 245/255, green: 158/255, blue: 11/255, alpha: 1)  // #f59e0b
+let accentDanger  = NSColor(red: 239/255, green: 68/255, blue: 68/255, alpha: 1)   // #ef4444
+let accentUncapped = NSColor(red: 59/255, green: 130/255, blue: 246/255, alpha: 1) // #3b82f6
+
 // MARK: - Models
 
 struct Account: Codable, Equatable {
@@ -231,65 +237,74 @@ func remaining(for info: KeyInfo?) -> Double? {
 
 func fmt(_ n: Double?) -> String {
     guard let n = n else { return "—" }
-    return NumberFormatter.localizedString(from: NSNumber(value: n), number: .currency)
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.locale = Locale(identifier: "en_US")
+    return formatter.string(from: NSNumber(value: n)) ?? "—"
 }
 
-func glyph(for state: AccountState) -> String {
+func coloredCircle(color: NSColor, size: CGFloat = 10) -> NSImage {
+    let image = NSImage(size: NSSize(width: size, height: size))
+    image.lockFocus()
+    color.set()
+    let path = NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size))
+    path.fill()
+    image.unlockFocus()
+    image.isTemplate = false
+    return image
+}
+
+func statusDot(for state: AccountState) -> NSImage? {
     switch state {
-    case .ok: return "🟢"
-    case .warn: return "🟡"
-    case .danger: return "🔴"
-    case .uncapped: return "🔵"
-    case .error: return "⚠️"
-    case .loading: return "⏳"
+    case .ok:
+        return coloredCircle(color: accentOK)
+    case .warn:
+        return coloredCircle(color: accentWarn)
+    case .danger:
+        return coloredCircle(color: accentDanger)
+    case .uncapped:
+        return coloredCircle(color: accentUncapped)
+    case .error:
+        return symbolImage("exclamationmark.triangle.fill", description: "Error")
+    case .loading:
+        return symbolImage("hourglass", description: "Loading")
+    }
+}
+
+func symbolImage(_ name: String, description: String, color: NSColor? = nil) -> NSImage? {
+    if let color = color {
+        let config = NSImage.SymbolConfiguration(paletteColors: [color])
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: description)?.withSymbolConfiguration(config)
+        image?.isTemplate = false
+        return image
+    } else {
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: description) else {
+            return nil
+        }
+        image.isTemplate = true
+        return image
     }
 }
 
 // MARK: - Menu builder
 
-final class CreditChecker {
+final class CreditChecker: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private var settings = SettingsStore.shared.load()
     // Per-account fetched results (nil = not yet loaded).
     private var results: [String: Result<KeyInfo, FetchError>] = [:]
+    // Pulse animation state
+    private var pulseTimer: Timer?
+    private var pulseAlpha: CGFloat = 1.0
+    private var pulseDirection: CGFloat = -1  // -1 fading out, +1 fading in
+    private weak var headerValueItem: NSMenuItem?
+    private var headerMainText: String = ""
+    private var headerTimeText: String = ""
 
-    // Cached menu items so we can mutate titles in place.
-    private var headerItem = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
-    private var accountSubmenus: [String: NSMenuItem] = [:]
-    private let accountsMenuItem = NSMenuItem(title: "Accounts", action: nil, keyEquivalent: "")
-    private var accountsSeparator: NSMenuItem = NSMenuItem.separator()
-    private let addItem = NSMenuItem(title: "Add account…", action: #selector(onAdd), keyEquivalent: "n")
-    private let refreshItem = NSMenuItem(title: "Refresh now", action: #selector(onRefresh), keyEquivalent: "r")
-    private let quitItem = NSMenuItem(title: "Quit Arise Credit", action: #selector(onQuit), keyEquivalent: "q")
-
-    init() {
+    override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "⏳"
-        buildMenu()
-    }
-
-    // MARK: menu construction
-    private func buildMenu() {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        headerItem.isEnabled = false
-        menu.addItem(headerItem)
-        menu.addItem(.separator())
-
-        accountsMenuItem.submenu = NSMenu()
-        accountsMenuItem.isEnabled = true
-        menu.addItem(accountsMenuItem)
-        menu.addItem(.separator())
-
-        addItem.target = self
-        refreshItem.target = self
-        quitItem.target = self
-        menu.addItem(addItem)
-        menu.addItem(refreshItem)
-        menu.addItem(.separator())
-        menu.addItem(quitItem)
-
-        statusItem.menu = menu
+        super.init()
+        statusItem.button?.image = symbolImage("hourglass", description: "Loading")
         render()
     }
 
@@ -370,17 +385,11 @@ final class CreditChecker {
         SettingsStore.shared.save(settings)
     }
 
-    // MARK: render
-    func render() {
-        renderHeader()
-        renderAccounts()
-        renderStatusTitle()
-    }
-
-    private func renderHeader() {
+    private func getGlobalHeaderItems() -> [NSMenuItem] {
         if settings.accounts.isEmpty {
-            headerItem.title = "No accounts — Add account…"
-            return
+            let item = NSMenuItem(title: "No accounts — Add account…", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            return [item]
         }
         var totalRem: Double = 0, totalUncapped: Double = 0
         var hasRem = false, hasUncapped = false
@@ -394,28 +403,114 @@ final class CreditChecker {
                 else if let spend = info.spend { totalUncapped += spend; hasUncapped = true }
             }
         }
-        var parts: [String] = []
-        if hasRem { parts.append("\(fmt(totalRem)) remaining") }
-        if hasUncapped { parts.append("\(fmt(totalUncapped)) spent (uncapped)") }
-        if errors > 0 { parts.append("\(errors) error\(errors == 1 ? "" : "s")") }
-        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
-        headerItem.title = parts.isEmpty ? "Loading…   ·   updated \(ts)"
-                                      : parts.joined(separator: " · ") + "   ·   updated \(ts)"
+        
+        let headerLabel = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let labelAttr = NSAttributedString(string: "TOTAL CREDIT", attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .kern: 0.3
+        ])
+        headerLabel.view = InfoMenuItemView(leftAttr: labelAttr)
+        headerLabel.isEnabled = true
+        
+        var mainText = "Loading…"
+        if hasRem || hasUncapped || errors > 0 {
+            var parts: [String] = []
+            if hasRem { parts.append("\(fmt(totalRem)) remaining") }
+            if hasUncapped { parts.append("\(fmt(totalUncapped)) spent (uncapped)") }
+            if errors > 0 { parts.append("\(errors) error\(errors == 1 ? "" : "s")") }
+            mainText = parts.joined(separator: " · ")
+        }
+        
+        headerMainText = mainText
+        let updatedStr = getUpdatedTimeText()
+        headerTimeText = updatedStr
+        
+        let headerValue = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let leftAttr = NSAttributedString(string: mainText, attributes: [
+            .font: NSFont.systemFont(ofSize: 16, weight: .bold),
+            .foregroundColor: NSColor.white
+        ])
+        let rightAttr = NSAttributedString(string: updatedStr, attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+            .foregroundColor: NSColor.secondaryLabelColor.withAlphaComponent(pulseAlpha)
+        ])
+        
+        let valView = InfoMenuItemView(leftAttr: leftAttr, rightAttr: rightAttr, rightInset: 10, topInset: 3, bottomInset: 3, height: 28)
+        headerValue.view = valView
+        headerValue.isEnabled = true
+        headerValueItem = headerValue
+        
+        return [headerLabel, headerValue]
     }
 
-    private func renderAccounts() {
-        let submenu = NSMenu()
-        submenu.autoenablesItems = false
-        if settings.accounts.isEmpty {
-            let item = NSMenuItem(title: "No accounts yet — use “Add account…”", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            submenu.addItem(item)
+    private func getUpdatedTimeText() -> String {
+        guard let lastRefresh = settings.lastRefresh else {
+            return "Updated never"
+        }
+        let minutes = Int(Date().timeIntervalSince(lastRefresh) / 60)
+        if minutes == 0 {
+            return "Updated just now"
         } else {
+            return "Updated \(minutes)m ago"
+        }
+    }
+
+    // MARK: render
+    func render() {
+        renderStatusTitle()
+
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.minimumWidth = 300
+        menu.delegate = self
+
+        // 1. Header
+        let headers = getGlobalHeaderItems()
+        for h in headers { menu.addItem(h) }
+        
+        menu.addItem(.separator())
+
+        // 2. Accounts
+        if !settings.accounts.isEmpty {
+            let activeLabel = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            let activeAttr = NSAttributedString(string: "ACTIVE ACCOUNTS", attributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .kern: 0.5
+            ])
+            activeLabel.view = InfoMenuItemView(leftAttr: activeAttr)
+            activeLabel.isEnabled = true
+            menu.addItem(activeLabel)
+            
             for account in settings.accounts {
-                submenu.addItem(buildAccountRow(for: account))
+                menu.addItem(buildAccountRow(for: account))
             }
         }
-        accountsMenuItem.submenu = submenu
+        menu.addItem(.separator())
+
+        // 3. Actions
+        let add = NSMenuItem(title: "", action: #selector(onAdd), keyEquivalent: "n")
+        add.target = self
+        add.view = ActionMenuItemView(name: "Add account", shortcut: "⌘N", icon: symbolImage("plus.circle", description: "Add account"))
+        add.isEnabled = true
+        menu.addItem(add)
+
+        let refresh = NSMenuItem(title: "", action: #selector(onRefresh), keyEquivalent: "r")
+        refresh.target = self
+        refresh.view = ActionMenuItemView(name: "Refresh now", shortcut: "⌘R", icon: symbolImage("arrow.clockwise", description: "Refresh now"))
+        refresh.isEnabled = true
+        menu.addItem(refresh)
+
+        menu.addItem(.separator())
+
+        let quit = NSMenuItem(title: "", action: #selector(onQuit), keyEquivalent: "q")
+        quit.target = self
+        quit.view = ActionMenuItemView(name: "Quit Arise Credit", shortcut: "⌘Q", icon: symbolImage("power", description: "Quit"))
+        quit.isEnabled = true
+        menu.addItem(quit)
+
+        statusItem.menu = menu
     }
 
     private func buildAccountRow(for account: Account) -> NSMenuItem {
@@ -425,61 +520,99 @@ final class CreditChecker {
         let st = state(for: info, error: err)
 
         let balance: String
+        var balanceColor: NSColor = .labelColor
         switch st {
         case .loading: balance = "…"
-        case .error(let m): balance = "⚠ \(m)"
+        case .error(_): 
+            balance = "⚠ Error"
+            balanceColor = accentDanger
         default:
-            if let rem = remaining(for: info) { balance = fmt(rem) }
-            else if let spend = info?.spend { balance = "\(fmt(spend)) spent" }
+            if let rem = remaining(for: info) { 
+                balance = fmt(rem)
+                balanceColor = accentOK
+            }
+            else if let spend = info?.spend { 
+                balance = "\(fmt(spend)) spent" 
+                balanceColor = accentUncapped
+            }
             else { balance = "—" }
         }
-        // Tab-align the balance toward the right using a tab + a right tab stop.
-        let title = "\(glyph(for: st))  \(account.name)\t\(balance)"
 
-        let head = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let head = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        head.view = AccountMenuItemView(name: account.name, balance: balance, balanceColor: balanceColor, dotImage: statusDot(for: st))
         head.isEnabled = true
-
-        // Detail submenu.
+                // Detail submenu.
         let detail = NSMenu()
         detail.autoenablesItems = false
+        detail.minimumWidth = 280
+        
+        // Add detail title
+        let detailTitle = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let detailTitleAttr = NSAttributedString(string: "\(account.name.uppercased()) DETAILS", attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .kern: 0.5
+        ])
+        detailTitle.view = InfoMenuItemView(leftAttr: detailTitleAttr, height: 26)
+        detailTitle.isEnabled = true
+        detail.addItem(detailTitle)
+        
         if case .error(let m) = st {
             let item = NSMenuItem(title: "Error: \(m)", action: nil, keyEquivalent: "")
             item.isEnabled = false
             detail.addItem(item)
         } else {
-            addDetail(detail, "Remaining:", fmt(remaining(for: info)))
+            addDetail(detail, "Remaining:", fmt(remaining(for: info)), valueColor: .white, valueBold: true)
             addDetail(detail, "Spent:",     fmt(info?.spend))
             addDetail(detail, "Budget:",    info?.maxBudget == nil ? "unlimited" : fmt(info?.maxBudget))
             if let max = info?.maxBudget, let spend = info?.spend, max > 0 {
-                addDetail(detail, "Used:", String(format: "%.1f%%", spend / max * 100))
+                let pct = spend / max * 100
+                addDetail(detail, "Used:", String(format: "%.1f%%", pct), valueColor: pct > 80 ? accentWarn : .labelColor, valueBold: pct > 80)
             }
-            addDetail(detail, "Alias:", info?.keyAlias ?? "—")
-            let models = info?.models ?? []
-            addDetail(detail, "Models:", models.isEmpty ? "all" : models.joined(separator: ", "))
+            addDetail(detail, "Key Alias:", info?.keyAlias ?? "—", isMono: true)
         }
         detail.addItem(.separator())
-        let editItem = NSMenuItem(title: "Edit…", action: #selector(onEdit), keyEquivalent: "")
+        let editItem = NSMenuItem(title: "Edit Settings…", action: #selector(onEdit), keyEquivalent: "")
         editItem.target = self
         editItem.representedObject = account.id
-        let removeItem = NSMenuItem(title: "Remove", action: #selector(onRemove), keyEquivalent: "")
+        editItem.image = symbolImage("pencil", description: "Edit account")
+        detail.addItem(editItem)
+        
+        let removeItem = NSMenuItem(title: "Remove Account", action: #selector(onRemove), keyEquivalent: "")
         removeItem.target = self
         removeItem.representedObject = account.id
-        detail.addItem(editItem)
+        removeItem.image = symbolImage("trash", description: "Remove account", color: accentDanger)
+        let removeAttr = NSAttributedString(string: "Remove Account", attributes: [.foregroundColor: accentDanger])
+        removeItem.attributedTitle = removeAttr
         detail.addItem(removeItem)
-
+ 
         head.submenu = detail
         return head
     }
-
-    private func addDetail(_ menu: NSMenu, _ k: String, _ v: String) {
-        let item = NSMenuItem(title: "\(k)\t\(v)", action: nil, keyEquivalent: "")
-        item.isEnabled = false
+ 
+    private func addDetail(_ menu: NSMenu, _ label: String, _ value: String, valueColor: NSColor = .secondaryLabelColor, valueBold: Bool = false, isMono: Bool = false) {
+        let leftAttr = NSAttributedString(string: label, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .regular),
+            .foregroundColor: NSColor.secondaryLabelColor
+        ])
+        
+        let valFont = isMono ? NSFont.monospacedSystemFont(ofSize: 11, weight: .regular) 
+                             : NSFont.systemFont(ofSize: 13, weight: valueBold ? .semibold : .regular)
+        let rightAttr = NSAttributedString(string: value, attributes: [
+            .font: valFont,
+            .foregroundColor: valueColor
+        ])
+        
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.view = InfoMenuItemView(leftAttr: leftAttr, rightAttr: rightAttr, rightInset: 10, topInset: 5, bottomInset: 5, height: 25)
+        item.isEnabled = true
         menu.addItem(item)
     }
 
     private func renderStatusTitle() {
         if settings.accounts.isEmpty {
-            statusItem.button?.title = "🔑"
+            statusItem.button?.title = ""
+            statusItem.button?.image = symbolImage("key.fill", description: "Arise Credit")
             return
         }
         var totalRem: Double = 0
@@ -494,12 +627,46 @@ final class CreditChecker {
             }
         }
         if hasRem {
+            statusItem.button?.image = nil
             statusItem.button?.title = fmt(totalRem) + (errors > 0 ? " ⚠️" : "")
         } else if errors > 0 {
-            statusItem.button?.title = "⚠️"
+            statusItem.button?.title = ""
+            statusItem.button?.image = symbolImage("exclamationmark.triangle.fill", description: "Account error")
         } else {
-            statusItem.button?.title = "…"
+            statusItem.button?.title = ""
+            statusItem.button?.image = symbolImage("hourglass", description: "Loading")
         }
+    }
+
+    // MARK: - Pulse animation for "Updated" text
+    func menuWillOpen(_ menu: NSMenu) {
+        pulseAlpha = 1.0
+        pulseDirection = -1
+        pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            self?.animatePulse()
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        pulseTimer?.invalidate()
+        pulseTimer = nil
+    }
+
+    private func animatePulse() {
+        pulseAlpha += pulseDirection * 0.025
+        if pulseAlpha <= 0.35 { pulseAlpha = 0.35; pulseDirection = 1 }
+        if pulseAlpha >= 1.0  { pulseAlpha = 1.0;  pulseDirection = -1 }
+
+        let updatedStr = getUpdatedTimeText()
+        headerTimeText = updatedStr
+
+        guard let item = headerValueItem, let view = item.view as? InfoMenuItemView else { return }
+        
+        let rightAttr = NSAttributedString(string: updatedStr, attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+            .foregroundColor: NSColor.secondaryLabelColor.withAlphaComponent(pulseAlpha)
+        ])
+        view.updateRightString(rightAttr)
     }
 }
 
@@ -517,6 +684,7 @@ final class AccountEditor: NSObject, NSTextFieldDelegate, NSWindowDelegate {
     private let keyField = NSSecureTextField()
     private let mode: Mode
     private let completion: (Result?) -> Void
+    private var didComplete = false
 
     struct Result { let name, baseURL, apiKey: String }
 
@@ -632,11 +800,23 @@ final class AccountEditor: NSObject, NSTextFieldDelegate, NSWindowDelegate {
     @objc private func cancel() { finish(nil) }
 
     private func finish(_ result: Result?) {
+        complete(result, closeWindow: true)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        complete(nil, closeWindow: false)
+    }
+
+    private func complete(_ result: Result?, closeWindow: Bool) {
+        guard !didComplete else { return }
+        didComplete = true
         completion(result)
         window.sheetParent?.endSheet(window)
-        window.close()
         objc_setAssociatedObject(window, &AccountEditor.assocKey, nil, .OBJC_ASSOCIATION_RETAIN)
-        NSApp.hide(nil)
+        if closeWindow {
+            window.delegate = nil
+            window.close()
+        }
     }
 
     private func flash(_ field: NSTextField) {
@@ -672,3 +852,245 @@ let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory) // no dock icon, menu bar only
 app.run()
+
+// MARK: - Custom non-selectable, non-dimmed Info Menu Item View
+final class InfoMenuItemView: NSView {
+    private let leftField = NSTextField()
+    private let rightField = NSTextField()
+    private let leftInset: CGFloat
+    private let rightInset: CGFloat
+    
+    init(leftAttr: NSAttributedString, rightAttr: NSAttributedString = NSAttributedString(), leftInset: CGFloat = 20, rightInset: CGFloat = 20, topInset: CGFloat = 4, bottomInset: CGFloat = 4, height: CGFloat = 22) {
+        self.leftInset = leftInset
+        self.rightInset = rightInset
+        super.init(frame: NSRect(x: 0, y: 0, width: 280, height: height))
+        
+        for f in [leftField, rightField] {
+            f.isEditable = false
+            f.isSelectable = false
+            f.isBordered = false
+            f.drawsBackground = false
+            f.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(f)
+        }
+        
+        leftField.alignment = .left
+        rightField.alignment = .right
+        
+        leftField.attributedStringValue = leftAttr
+        rightField.attributedStringValue = rightAttr
+        
+        // Prevent overlapping: rightField has compression resistance
+        rightField.setContentCompressionResistancePriority(.required, for: .horizontal)
+        leftField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        
+        NSLayoutConstraint.activate([
+            leftField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: leftInset),
+            leftField.topAnchor.constraint(equalTo: topAnchor, constant: topInset),
+            leftField.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomInset),
+            
+            rightField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -rightInset),
+            rightField.topAnchor.constraint(equalTo: topAnchor, constant: topInset),
+            rightField.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomInset),
+            
+            leftField.trailingAnchor.constraint(lessThanOrEqualTo: rightField.leadingAnchor, constant: -8)
+        ])
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func updateRightString(_ attr: NSAttributedString) {
+        rightField.attributedStringValue = attr
+    }
+}
+
+// MARK: - Custom interactive, non-dimmed Account Menu Item View
+final class AccountMenuItemView: NSView {
+    private let statusDotView = NSImageView()
+    private let nameField = NSTextField()
+    private let balanceField = NSTextField()
+    private let arrowView = NSImageView()
+    
+    private let name: String
+    private let balance: String
+    private let balanceColor: NSColor
+    
+    init(name: String, balance: String, balanceColor: NSColor, dotImage: NSImage?) {
+        self.name = name
+        self.balance = balance
+        self.balanceColor = balanceColor
+        super.init(frame: NSRect(x: 0, y: 0, width: 280, height: 26))
+        
+        statusDotView.image = dotImage
+        statusDotView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(statusDotView)
+        
+        for f in [nameField, balanceField] {
+            f.isEditable = false
+            f.isSelectable = false
+            f.isBordered = false
+            f.drawsBackground = false
+            f.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(f)
+        }
+        
+        nameField.alignment = .left
+        balanceField.alignment = .right
+        
+        if #available(macOS 11.0, *) {
+            arrowView.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "")
+        }
+        arrowView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(arrowView)
+        
+        NSLayoutConstraint.activate([
+            statusDotView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            statusDotView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            statusDotView.widthAnchor.constraint(equalToConstant: 10),
+            statusDotView.heightAnchor.constraint(equalToConstant: 10),
+            
+            nameField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 38),
+            nameField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            
+            arrowView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            arrowView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrowView.widthAnchor.constraint(equalToConstant: 8),
+            arrowView.heightAnchor.constraint(equalToConstant: 12),
+            
+            balanceField.trailingAnchor.constraint(equalTo: arrowView.leadingAnchor, constant: -4),
+            balanceField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            balanceField.leadingAnchor.constraint(greaterThanOrEqualTo: nameField.trailingAnchor, constant: 8)
+        ])
+        
+        updateColors()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func updateColors() {
+        let isHi = enclosingMenuItem?.isHighlighted ?? false
+        
+        nameField.attributedStringValue = NSAttributedString(string: name, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: isHi ? NSColor.white : NSColor.white
+        ])
+        
+        balanceField.attributedStringValue = NSAttributedString(string: balance, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+            .foregroundColor: isHi ? NSColor.white : balanceColor
+        ])
+        
+        if #available(macOS 10.14, *) {
+            arrowView.contentTintColor = NSColor.white
+        }
+    }
+    
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        if let menuItem = enclosingMenuItem, menuItem.isHighlighted {
+            if #available(macOS 10.14, *) {
+                NSColor.selectedContentBackgroundColor.set()
+            } else {
+                NSColor.selectedMenuItemColor.set()
+            }
+            bounds.fill()
+        }
+        updateColors()
+    }
+}
+
+// MARK: - Custom interactive Action Menu Item View (with bright white shortcut)
+final class ActionMenuItemView: NSView {
+    private let iconView = NSImageView()
+    private let nameField = NSTextField()
+    private let shortcutField = NSTextField()
+    
+    private let name: String
+    private let shortcut: String
+    
+    init(name: String, shortcut: String, icon: NSImage?) {
+        self.name = name
+        self.shortcut = shortcut
+        super.init(frame: NSRect(x: 0, y: 0, width: 280, height: 26))
+        
+        iconView.image = icon
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(iconView)
+        
+        for f in [nameField, shortcutField] {
+            f.isEditable = false
+            f.isSelectable = false
+            f.isBordered = false
+            f.drawsBackground = false
+            f.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(f)
+        }
+        
+        nameField.alignment = .left
+        shortcutField.alignment = .right
+        
+        NSLayoutConstraint.activate([
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 14),
+            iconView.heightAnchor.constraint(equalToConstant: 14),
+            
+            nameField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 38),
+            nameField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            
+            shortcutField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            shortcutField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            shortcutField.leadingAnchor.constraint(greaterThanOrEqualTo: nameField.trailingAnchor, constant: 8)
+        ])
+        
+        updateColors()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func updateColors() {
+        let isHi = enclosingMenuItem?.isHighlighted ?? false
+        
+        nameField.attributedStringValue = NSAttributedString(string: name, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .regular),
+            .foregroundColor: isHi ? NSColor.white : NSColor.white
+        ])
+        
+        shortcutField.attributedStringValue = NSAttributedString(string: shortcut, attributes: [
+            .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+            .foregroundColor: isHi ? NSColor.white : NSColor.white
+        ])
+        
+        if #available(macOS 10.14, *) {
+            iconView.contentTintColor = isHi ? NSColor.white : NSColor.labelColor
+        }
+    }
+    
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        if let menuItem = enclosingMenuItem, menuItem.isHighlighted {
+            if #available(macOS 10.14, *) {
+                NSColor.selectedContentBackgroundColor.set()
+            } else {
+                NSColor.selectedMenuItemColor.set()
+            }
+            bounds.fill()
+        }
+        updateColors()
+    }
+    
+    override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
+        guard let menuItem = enclosingMenuItem, let menu = menuItem.menu else { return }
+        menu.cancelTracking()
+        if let action = menuItem.action {
+            NSApp.sendAction(action, to: menuItem.target, from: menuItem)
+        }
+    }
+}

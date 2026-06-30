@@ -6,6 +6,8 @@
     <string>Arise Credit</string>
     <key>CFBundleDisplayName</key>
     <string>Arise Credit</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>dev.arisetech.arisecredit</string>
     <key>CFBundleVersion</key>
