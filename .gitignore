@@ -1,6 +1,7 @@
 # Build output
 .build/
 build/
+dist/
 DerivedData/
 
 # macOS

@@ -16,6 +16,41 @@ cap show total `spend` instead.
 
 ---
 
+## Install
+
+### Option A — Homebrew (recommended)
+
+```bash
+brew install --cask misternay/tap/arise-credit-checker
+```
+
+Then open from Spotlight / Launchpad. Homebrew installs with `--no-quarantine`
+so the app opens without any Gatekeeper warning.
+
+### Option B — Download
+
+Grab the latest `.dmg` from the
+[Releases page](https://github.com/misternay/arise-credit-checker/releases):
+
+1. Open the `.dmg` and drag **Arise Credit.app** to **Applications**.
+2. **First launch only** — this app is **unsigned** (no paid Apple Developer ID),
+   so macOS will block it. Right-click the app → **Open** → confirm **Open** in
+   the dialog. You only need to do this once. (Alternatively, in Terminal:
+   `xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"`.)
+
+### Option C — Build from source
+
+```bash
+git clone https://github.com/misternay/arise-credit-checker
+cd arise-credit-checker
+./build.sh
+open ".build/Arise Credit.app"
+```
+
+Requires Xcode Command Line Tools (`xcode-select --install`).
+
+---
+
 ## Features
 
 - **Native menu bar dropdown** — one click, everything inline. No separate window.
@@ -35,18 +70,31 @@ cap show total `spend` instead.
 ## Requirements
 
 - macOS 12.0+
-- Xcode Command Line Tools (`xcode-select --install`)
+- (Building from source only) Xcode Command Line Tools (`xcode-select --install`)
 
-## Build & run
+Once installed by any method above, a 🔑 icon appears in the menu bar. Click it →
+**Add account… (⌘N)** → paste your key.
+
+---
+
+## Releasing a new version
+
+Maintainers cut a release with:
 
 ```bash
-git clone <this-repo> arise-credit-checker
-cd arise-credit-checker
-./build.sh
-open ".build/Arise Credit.app"
-```
+# 1. bump version
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.0" Info.plist
 
-A 🔑 icon appears in the menu bar. Click it → **Add account… (⌘N)** → paste your key.
+# 2. build universal .zip + .dmg + sha256sums into dist/
+./build-release.sh 1.1.0
+
+# 3. publish (uploads assets, creates tag)
+gh release create v1.1.0 dist/*.zip dist/*.dmg dist/sha256sums.txt \
+    --title v1.1.0 --notes "..."
+
+# 4. update the Homebrew cask at misternay/homebrew-tap:
+#    bump version + replace sha256 with the new zip's checksum
+```
 
 ---
 
