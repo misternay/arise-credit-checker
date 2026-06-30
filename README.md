@@ -21,11 +21,20 @@ cap show total `spend` instead.
 ### Option A — Homebrew (recommended)
 
 ```bash
-brew install --cask misternay/tap/arise-credit-checker
+brew install --cask --no-quarantine misternay/tap/arise-credit-checker
 ```
 
-Then open from Spotlight / Launchpad. Homebrew installs with `--no-quarantine`
-so the app opens without any Gatekeeper warning.
+Then open from Spotlight / Launchpad.
+
+> **Why `--no-quarantine`?** This app is **unsigned** (no paid Apple Developer ID).
+> On macOS 12+ an unsigned app that still carries the `com.apple.quarantine`
+> flag is reported as **"damaged and can't be opened"** and macOS will offer to
+> move it to Trash — even though the download is perfectly intact. The
+> `--no-quarantine` flag tells Homebrew *not* to attach that flag, so the app
+> opens normally. If you forgot it, fix the installed copy in one line:
+> ```bash
+> xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"
+> ```
 
 ### Option B — Download
 
@@ -34,9 +43,15 @@ Grab the latest `.dmg` from the
 
 1. Open the `.dmg` and drag **Arise Credit.app** to **Applications**.
 2. **First launch only** — this app is **unsigned** (no paid Apple Developer ID),
-   so macOS will block it. Right-click the app → **Open** → confirm **Open** in
-   the dialog. You only need to do this once. (Alternatively, in Terminal:
-   `xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"`.)
+   so on macOS 12+ macOS will report it as **"damaged and can't be opened"** and
+   offer to move it to Trash. The download is fine — that message is macOS's way
+   of blocking an unsigned, quarantined app. Clear the quarantine flag and it
+   opens normally:
+   ```bash
+   xattr -dr com.apple.quarantine "/Applications/Arise Credit.app"
+   ```
+   (On macOS 11 Big Sur and earlier the old right-click → **Open** → confirm
+   workflow still works; on 12+ the `xattr` line is the reliable path.)
 
 ### Option C — Build from source
 

@@ -43,6 +43,17 @@ rm -f "$DIST/$EXEC_NAME"
 # Stamp the version into the bundle.
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_BUNDLE/Contents/Info.plist" 2>/dev/null || true
 
+echo "▸ Ad-hoc signing the bundle…"
+# Sign with a stable identifier taken from Info.plist (dev.arisetech.arisecredit).
+# This replaces the bare "linker-signed" signature Swift leaves behind with a
+# proper bundle signature. Ad-hoc (--sign -) is the best you can do without a
+# paid Apple Developer ID; it does NOT satisfy Gatekeeper on its own, but it
+# makes the bundle well-formed so that "xattr -dr com.apple.quarantine" fully
+# clears the "damaged / move to Trash" warning. See README → Install.
+BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_BUNDLE/Contents/Info.plist")
+codesign --force --deep --sign - --identifier "$BUNDLE_ID" "$APP_BUNDLE"
+codesign --verify --verbose=2 "$APP_BUNDLE" 2>&1 | sed 's/^/  /'
+
 echo "▸ Creating ZIP…"
 ditto -c -k --keepParent "$APP_BUNDLE" "$DIST/$APP_NAME-$VERSION.zip"
 
