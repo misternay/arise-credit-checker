@@ -120,6 +120,8 @@ gh release create v1.1.0 dist/*.zip dist/*.dmg dist/sha256sums.txt \
 
 ## How it looks
 
+![Arise Credit Checker Preview](preview/preview.png)
+
 ```
 🔑                            ← menu bar (🔑 until you add a key)
  ┌──────────────────────────────────────────┐
